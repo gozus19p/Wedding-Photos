@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from datetime import datetime
-from pipeline.storage import upload_photo, save_metadata
+from pipeline.storage import upload_photo
 
 CUSTOM_CSS = """
 <style>
@@ -188,18 +188,10 @@ def render_upload_page():
                     timestamp = datetime.utcnow().isoformat()
                     object_key = f"photos/{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{i}_{file.name}"
 
-                    public_url = upload_photo(
+                    upload_photo(
                         file_bytes=file_bytes,
                         object_key=object_key,
                         content_type=file.type or "image/jpeg",
-                    )
-
-                    save_metadata(
-                        object_key=object_key,
-                        public_url=public_url,
-                        filename=file.name,
-                        file_size=len(file_bytes),
-                        uploaded_at=timestamp,
                     )
 
                     success_count += 1

@@ -1,7 +1,6 @@
 import streamlit as st
 import os
-from pipeline.storage import get_all_photos, get_photos_by_moment
-from pipeline.clip_classifier import classify_all_photos, MOMENT_LABELS
+from pipeline.storage import get_all_photos
 
 CUSTOM_CSS = """
 <style>
@@ -156,14 +155,6 @@ header { display: none !important; }
 </style>
 """
 
-MOMENT_EMOJI = {
-    "cerimonia": "⛪",
-    "cena": "🍽",
-    "ricevimento": "🥂",
-    "balli": "🎶",
-    "altro": "📷",
-}
-
 
 def render_gallery_page():
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
@@ -175,105 +166,25 @@ def render_gallery_page():
     st.markdown(
         f'<div class="page-title">Galleria · {couple}</div>', unsafe_allow_html=True
     )
-    
-    moments_found = list(set(p.get("moment") for p in photos if p.get("moment")))
-    unclassified = sum(1 for p in photos if not p.get("moment"))
 
-    st.markdown('<div class="stats-row">', unsafe_allow_html=True)
-    cols = st.columns(3)
-    with cols[0]:
+    if total == 0:
         st.markdown(
-            f'<div class="stat-card"><div class="stat-label">Foto totali</div><div class="stat-value">{total}</div></div>',
-            unsafe_allow_html=True,
-        )
-    with cols[1]:
-        st.markdown(
-            f'<div class="stat-card"><div class="stat-label">Momenti</div><div class="stat-value">{len(moments_found)}</div></div>',
-            unsafe_allow_html=True,
-        )
-    with cols[2]:
-        st.markdown(
-            f'<div class="stat-card"><div class="stat-label">Da classificare</div><div class="stat-value">{unclassified}</div></div>',
-            unsafe_allow_html=True,
-        )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if unclassified > 0:
-        st.markdown('<div class="classify-section">', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="classify-title">Classifica con CLIP</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            f'<div class="classify-desc">'
-            f"{unclassified} foto non ancora classificate. "
-            f"La pipeline CLIP analizzerà ogni immagine e la assegnerà al momento più probabile: "
-            f'{", ".join(MOMENT_LABELS)}.'
-            f"</div>",
-            unsafe_allow_html=True,
-        )
-        if st.button("Avvia classificazione CLIP", key="classify_btn"):
-            with st.spinner(
-                "Classificazione in corso… potrebbe richiedere qualche minuto"
-            ):
-                result = classify_all_photos()
-            st.success(
-                f"Classificate {result['classified']} foto. {result.get('errors', 0)} errori."
-            )
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("---")
-    st.markdown("**Filtra per momento**")
-
-    filter_options = (
-        ["Tutte"]
-        + [f"{MOMENT_EMOJI.get(m, '📷')} {m.capitalize()}" for m in MOMENT_LABELS]
-        + ["❓ Non classificate"]
-    )
-
-    selected_filter = st.radio(
-        "Momento",
-        filter_options,
-        horizontal=True,
-        label_visibility="collapsed",
-        key="moment_filter",
-    )
-
-    if selected_filter == "Tutte":
-        filtered = photos
-    elif selected_filter == "❓ Non classificate":
-        filtered = [p for p in photos if not p.get("moment")]
-    else:
-        moment_key = selected_filter.split(" ", 1)[1].lower()
-        filtered = [p for p in photos if p.get("moment") == moment_key]
-
-    if not filtered:
-        st.markdown(
-            '<div class="empty-state">Nessuna foto in questa categoria</div>',
+            '<div class="empty-state">Nessuna foto ancora.</div>',
             unsafe_allow_html=True,
         )
         return
 
     st.markdown(
-        f'<div class="photo-total" style="margin-bottom:1rem">{len(filtered)} foto</div>',
+        f'<div class="photo-total" style="margin-bottom:1rem">{total} foto</div>',
         unsafe_allow_html=True,
     )
 
     num_cols = 3
     cols = st.columns(num_cols)
-    for i, photo in enumerate(filtered):
+    for i, photo in enumerate(photos):
         with cols[i % num_cols]:
-            local_path = photo.get("public_url")
-            if local_path and os.path.exists(local_path):
-                st.image(local_path, use_container_width=True)
+            url = photo.get("public_url")
+            if url:
+                st.image(url, use_container_width=True)
             else:
                 st.markdown("📷")
-
-            moment = photo.get("moment", "")
-            if moment:
-                emoji = MOMENT_EMOJI.get(moment, "📷")
-                st.markdown(
-                    f'<div class="moment-badge">{emoji} {moment}</div>',
-                    unsafe_allow_html=True,
-                )

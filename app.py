@@ -139,6 +139,8 @@ div[data-testid="stCheckbox"] label span {
 footer { display: none !important; }
 #MainMenu { display: none !important; }
 header { display: none !important; }
+[data-testid="collapsedControl"] { display: none !important; }
+section[data-testid="stSidebar"] { display: none !important; }
 </style>
 """
 

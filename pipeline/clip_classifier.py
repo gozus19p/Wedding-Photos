@@ -1,18 +1,5 @@
-"""
-CLIP-based image classifier for wedding moments.
+# Classification removed — functionality no longer used.
 
-Uses OpenAI CLIP (via open-clip-torch) to classify each photo into one of the
-predefined wedding moment categories using zero-shot inference — no training needed.
-"""
-
-import io
-import os
-from pathlib import Path
-from PIL import Image
-import torch
-import open_clip
-
-from pipeline.storage import get_unclassified_photos, update_moment
 
 MOMENT_LABELS = ["cerimonia", "cena", "ricevimento", "balli", "altro"]
 
@@ -49,6 +36,7 @@ _preprocess = None
 _tokenizer = None
 _text_features = None
 
+
 def _load_model():
     global _model, _preprocess, _tokenizer, _text_features
 
@@ -59,8 +47,7 @@ def _load_model():
     pretrained = os.getenv("CLIP_PRETRAINED", "openai")
 
     _model, _, _preprocess = open_clip.create_model_and_transforms(
-        model_name,
-        pretrained=pretrained
+        model_name, pretrained=pretrained
     )
     _tokenizer = open_clip.get_tokenizer(model_name)
     _model.eval()
@@ -140,7 +127,7 @@ def classify_all_photos() -> dict:
             update_moment(
                 object_key=photo["object_key"],
                 moment=moment,
-                confidence=round(confidence, 4)
+                confidence=round(confidence, 4),
             )
             classified += 1
 

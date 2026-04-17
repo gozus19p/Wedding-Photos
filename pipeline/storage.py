@@ -1,26 +1,14 @@
 """
 Storage layer for wedding photo app.
 - Cloudflare R2 (S3-compatible) for image files
-- Supabase (PostgreSQL) for metadata
 """
 
 import os
 from functools import lru_cache
 import boto3
 from botocore.config import Config
-from supabase import create_client, Client
-
-# --- Supabase Configuration ---
-SUPABASE_URL: str = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY: str = os.environ.get("SUPABASE_KEY", "")
 
 
-@lru_cache(maxsize=1)
-def _supabase() -> Client:
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
-
-
-# --- R2 Configuration ---
 @lru_cache(maxsize=1)
 def _r2():
     return boto3.client(
@@ -36,7 +24,11 @@ def _r2():
 R2_BUCKET = os.getenv("R2_BUCKET_NAME", "wedding-photos")
 R2_PUBLIC_BASE = os.getenv("R2_PUBLIC_BASE_URL", "").rstrip("/")
 
-# --- Image Operations ---
+
+def _public_url(object_key: str) -> str:
+    if R2_PUBLIC_BASE:
+        return f"{R2_PUBLIC_BASE}/{object_key}"
+    return f"https://{R2_BUCKET}.r2.cloudflarestorage.com/{object_key}"
 
 
 def upload_photo(
@@ -49,54 +41,26 @@ def upload_photo(
         Body=file_bytes,
         ContentType=content_type,
     )
-    if R2_PUBLIC_BASE:
-        return f"{R2_PUBLIC_BASE}/{object_key}"
-    return f"https://{R2_BUCKET}.r2.cloudflarestorage.com/{object_key}"
-
-
-# --- Metadata Operations (Supabase) ---
-
-
-def save_metadata(
-    object_key: str,
-    public_url: str,
-    filename: str,
-    file_size: int,
-    uploaded_at: str,
-) -> None:
-    data = {
-        "object_key": object_key,
-        "public_url": public_url,
-        "guest_name": "web_upload",  # Placeholder since guest tracking is removed
-        "filename": filename,
-        "file_size": file_size,
-        "uploaded_at": uploaded_at,
-        "moment": None,
-        "confidence": None,
-    }
-    _supabase().table("photos").insert(data).execute()
+    return _public_url(object_key)
 
 
 def get_all_photos() -> list[dict]:
-    response = (
-        _supabase()
-        .table("photos")
-        .select("*")
-        .order("uploaded_at", desc=True)
-        .execute()
-    )
-    return response.data
-
-
-def get_unclassified_photos() -> list[dict]:
-    response = (
-        _supabase()
-        .table("photos")
-        .select("object_key, public_url")
-        .is_("moment", "null")
-        .execute()
-    )
-    return response.data
+    """List all objects under photos/ prefix, newest first."""
+    paginator = _r2().get_paginator("list_objects_v2")
+    photos = []
+    for page in paginator.paginate(Bucket=R2_BUCKET, Prefix="photos/"):
+        for obj in page.get("Contents", []):
+            key = obj["Key"]
+            photos.append(
+                {
+                    "object_key": key,
+                    "public_url": _public_url(key),
+                    "uploaded_at": obj["LastModified"].isoformat(),
+                    "filename": key.split("/")[-1],
+                }
+            )
+    photos.sort(key=lambda x: x["uploaded_at"], reverse=True)
+    return photos
 
 
 def get_photos_by_moment(moment: str) -> list[dict]:

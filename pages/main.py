@@ -1,8 +1,7 @@
 import streamlit as st
 import os
 from datetime import datetime
-from pipeline.storage import upload_photo, save_metadata, get_all_photos, update_moment
-from pipeline.clip_classifier import classify_image_bytes, MOMENT_LABELS
+from pipeline.storage import upload_photo, get_all_photos
 
 # ── Palette ──────────────────────────────────────────────────────────────────
 # Terracotta: #C0694A  |  Salvia: #7A8C6E  |  Panna: #FAFAF8  |  Scuro: #2C2A26
@@ -327,67 +326,34 @@ div[data-testid="stRadio"] label span {
 </style>
 """
 
-MOMENT_EMOJI = {
-    "cerimonia": "⛪",
-    "cena": "🍽",
-    "ricevimento": "🥂",
-    "balli": "🎶",
-    "altro": "📷",
-}
 
-
-def _upload_and_classify(file) -> dict:
+def _upload_file(file) -> str:
     file_bytes = file.read()
-    timestamp = datetime.utcnow().isoformat()
     safe_ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S%f")
     object_key = f"photos/{safe_ts}_{file.name}"
-
-    public_url = upload_photo(
+    upload_photo(
         file_bytes=file_bytes,
         object_key=object_key,
         content_type=file.type or "image/jpeg",
     )
-    save_metadata(
-        object_key=object_key,
-        public_url=public_url,
-        filename=file.name,
-        file_size=len(file_bytes),
-        uploaded_at=timestamp,
-    )
-    moment, confidence = classify_image_bytes(file_bytes)
-    update_moment(object_key=object_key, moment=moment, confidence=round(confidence, 4))
-
-    return {"filename": file.name, "moment": moment, "confidence": confidence}
+    return file.name
 
 
 def render_upload_tab():
     # ── State machine: "form" | "done" ──────────────────────────
     if st.session_state.get("upload_state") == "done":
-        results = st.session_state.get("upload_results", [])
+        count = st.session_state.get("upload_count", 0)
         errors = st.session_state.get("upload_errors", [])
 
         st.markdown(
             f"""
         <div class="success-banner">
             <span class="big">Grazie!</span>
-            <span class="sub">{len(results)} foto condivise con gli sposi</span>
+            <span class="sub">{count} foto condivise con gli sposi</span>
         </div>
         """,
             unsafe_allow_html=True,
         )
-
-        for r in results:
-            emoji = MOMENT_EMOJI.get(r["moment"], "📷")
-            st.markdown(
-                f"""
-            <div class="result-row">
-                <span>{emoji}</span>
-                <span class="fname">{r["filename"]}</span>
-                <span class="tag">{r["moment"]}</span>
-            </div>
-            """,
-                unsafe_allow_html=True,
-            )
 
         for err in errors:
             st.markdown(f'<div class="error-row">{err}</div>', unsafe_allow_html=True)
@@ -395,7 +361,7 @@ def render_upload_tab():
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Carica altre foto"):
             st.session_state.pop("upload_state", None)
-            st.session_state.pop("upload_results", None)
+            st.session_state.pop("upload_count", None)
             st.session_state.pop("upload_errors", None)
             st.rerun()
         return
@@ -417,7 +383,6 @@ def render_upload_tab():
             f'<div class="hint" style="margin-top:.8rem">{len(uploaded_files)} foto selezionate</div>',
             unsafe_allow_html=True,
         )
-        # Preview: 2 cols on mobile, up to 4
         n_cols = min(len(uploaded_files), 4)
         cols = st.columns(n_cols)
         for i, f in enumerate(uploaded_files[:8]):
@@ -440,24 +405,24 @@ def render_upload_tab():
             return
 
         progress = st.progress(0, text="Caricamento in corso…")
-        results, errors = [], []
+        errors = []
+        success_count = 0
 
         for i, file in enumerate(uploaded_files):
             progress.progress(
                 (i + 0.5) / len(uploaded_files),
-                text=f"Elaboro {i+1}/{len(uploaded_files)}…",
+                text=f"Carico {i+1}/{len(uploaded_files)}…",
             )
             try:
-                results.append(_upload_and_classify(file))
+                _upload_file(file)
+                success_count += 1
             except Exception as e:
                 errors.append(f"{file.name}: {e}")
             progress.progress((i + 1) / len(uploaded_files))
 
         progress.empty()
-
-        # Salva nome per riproporlo al prossimo caricamento
         st.session_state["upload_state"] = "done"
-        st.session_state["upload_results"] = results
+        st.session_state["upload_count"] = success_count
         st.session_state["upload_errors"] = errors
         st.rerun()
 
@@ -473,57 +438,19 @@ def render_gallery_tab():
         )
         return
 
-    unclassified = sum(1 for p in photos if not p.get("moment"))
-
     st.markdown(
-        f"""
-    <div class="stats-strip">
-        <div class="stat-pill"><span class="stat-n">{total}</span><span class="stat-l">Foto</span></div>
-        <div class="stat-pill"><span class="stat-n">{len(MOMENT_LABELS)}</span><span class="stat-l">Momenti</span></div>
-    </div>
-    """,
+        f'<div class="hint" style="text-align:left;margin-bottom:.8rem">{total} foto</div>',
         unsafe_allow_html=True,
     )
 
-    filter_options = ["Tutte"] + [
-        f"{MOMENT_EMOJI.get(m,'📷')} {m.capitalize()}" for m in MOMENT_LABELS
-    ]
-    selected = st.radio("Filtra", filter_options, horizontal=True, key="gallery_filter")
-
-    if selected == "Tutte":
-        filtered = photos
-    else:
-        moment_key = selected.split(" ", 1)[1].lower()
-        filtered = [p for p in photos if p.get("moment") == moment_key]
-
-    if not filtered:
-        st.markdown(
-            '<div class="empty-state">Nessuna foto in questa categoria</div>',
-            unsafe_allow_html=True,
-        )
-        return
-
-    st.markdown(
-        f'<div class="hint" style="text-align:left;margin-bottom:.8rem">{len(filtered)} foto</div>',
-        unsafe_allow_html=True,
-    )
-
-    # 2 columns on mobile, 3 on wider screens
     cols = st.columns(2)
-    for i, photo in enumerate(filtered):
+    for i, photo in enumerate(photos):
         with cols[i % 2]:
             url = photo.get("public_url")
             if url:
                 st.image(url, use_container_width=True)
             else:
                 st.markdown("📷")
-            moment = photo.get("moment", "")
-
-            emoji = MOMENT_EMOJI.get(moment, "") if moment else ""
-            st.markdown(
-                f'<span class="moment-tag">{emoji} {moment}</span>',
-                unsafe_allow_html=True,
-            )
 
 
 def render_main_page():
