@@ -1,14 +1,16 @@
 import streamlit as st
 import os
 from pipeline.storage import get_all_photos
+from theme import TITLE_FONT_FAMILY, title_font_face_css
 
 CUSTOM_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Jost:wght@300;400&display=swap');
+__TITLE_FONT_FACE__
 
 html, body, [class*="css"] { font-family: 'Jost', sans-serif; font-weight: 300; }
 .stApp { background-color: #FAFAF8; }
-h1,h2,h3 { font-family: 'Cormorant Garamond', serif !important; font-weight: 300 !important; color: #2C2A26 !important; }
+h1,h2,h3 { font-family: '__TITLE_FONT_FAMILY__', serif !important; font-weight: 300 !important; color: #C0694A !important; }
 footer { display: none !important; }
 #MainMenu { display: none !important; }
 header { display: none !important; }
@@ -22,10 +24,10 @@ header { display: none !important; }
     margin-bottom: 1.8rem;
 }
 .page-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: '__TITLE_FONT_FAMILY__', serif;
     font-size: 1.8rem;
     font-style: italic;
-    color: #2C2A26;
+    color: #C0694A;
     font-weight: 300;
 }
 .photo-total {
@@ -98,9 +100,9 @@ header { display: none !important; }
     margin-bottom: 0.25rem;
 }
 .stat-value {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: '__TITLE_FONT_FAMILY__', serif;
     font-size: 1.6rem;
-    color: #2C2A26;
+    color: #C0694A;
     font-weight: 300;
 }
 
@@ -132,10 +134,10 @@ header { display: none !important; }
     margin-bottom: 1.8rem;
 }
 .classify-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: '__TITLE_FONT_FAMILY__', serif;
     font-size: 1.1rem;
     font-style: italic;
-    color: #2C2A26;
+    color: #C0694A;
     margin-bottom: 0.5rem;
 }
 .classify-desc {
@@ -153,7 +155,9 @@ header { display: none !important; }
     letter-spacing: 0.1em;
 }
 </style>
-"""
+""".replace("__TITLE_FONT_FACE__", title_font_face_css()).replace(
+    "__TITLE_FONT_FAMILY__", TITLE_FONT_FAMILY
+)
 
 
 def render_gallery_page():

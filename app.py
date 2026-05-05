@@ -2,6 +2,8 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 
+from theme import TITLE_FONT_FAMILY, title_font_face_css
+
 load_dotenv()
 
 st.set_page_config(
@@ -16,6 +18,7 @@ APP_PASSWORD = os.getenv("APP_PASSWORD", "matrimonio2025")
 CUSTOM_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@300;400&display=swap');
+__TITLE_FONT_FACE__
 
 /* ── Base ── */
 html, body, [class*="css"] {
@@ -25,10 +28,10 @@ html, body, [class*="css"] {
 }
 .stApp { background-color: #FAFAF8; }
 h1, h2, h3 {
-    font-family: 'Cormorant Garamond', serif !important;
+    font-family: '__TITLE_FONT_FAMILY__', serif !important;
     font-weight: 300 !important;
     letter-spacing: 0.04em;
-    color: #2C2A26 !important;
+    color: #C0694A !important;
 }
 
 /* ── Mobile viewport fix ── */
@@ -42,11 +45,11 @@ h1, h2, h3 {
 /* ── Hero ── */
 .wedding-hero { text-align: center; padding: 2.5rem 0 1.8rem; }
 .wedding-hero .names {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: '__TITLE_FONT_FAMILY__', serif;
     font-size: clamp(2rem, 8vw, 3.2rem);
     font-weight: 300;
     font-style: italic;
-    color: #2C2A26;
+    color: #C0694A;
     letter-spacing: 0.06em;
     line-height: 1.1;
 }
@@ -142,7 +145,9 @@ header { display: none !important; }
 [data-testid="collapsedControl"] { display: none !important; }
 section[data-testid="stSidebar"] { display: none !important; }
 </style>
-"""
+""".replace("__TITLE_FONT_FACE__", title_font_face_css()).replace(
+    "__TITLE_FONT_FAMILY__", TITLE_FONT_FAMILY
+)
 
 
 def render_hero():

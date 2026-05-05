@@ -2,6 +2,7 @@ import streamlit as st
 import os
 from datetime import datetime
 from pipeline.storage import upload_photo, get_all_photos
+from theme import TITLE_FONT_FAMILY, title_font_face_css
 
 # ── Palette ──────────────────────────────────────────────────────────────────
 # Terracotta: #C0694A  |  Salvia: #7A8C6E  |  Panna: #FAFAF8  |  Scuro: #2C2A26
@@ -9,6 +10,7 @@ from pipeline.storage import upload_photo, get_all_photos
 CUSTOM_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Jost:wght@300;400&display=swap');
+__TITLE_FONT_FACE__
 
 html, body, [class*="css"] {
     font-family: 'Jost', sans-serif;
@@ -17,9 +19,9 @@ html, body, [class*="css"] {
 }
 .stApp { background-color: #FAFAF8; }
 h1,h2,h3 {
-    font-family: 'Cormorant Garamond', serif !important;
+    font-family: '__TITLE_FONT_FAMILY__', serif !important;
     font-weight: 300 !important;
-    color: #2C2A26 !important;
+    color: #C0694A !important;
     letter-spacing: 0.04em;
 }
 footer { display: none !important; }
@@ -44,11 +46,11 @@ header { display: none !important; }
     margin-bottom: 1.4rem;
 }
 .page-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: '__TITLE_FONT_FAMILY__', serif;
     font-size: clamp(1.5rem, 5vw, 1.9rem);
     font-style: italic;
     font-weight: 300;
-    color: #2C2A26;
+    color: #C0694A;
     line-height: 1.1;
 }
 .page-subtitle {
@@ -176,10 +178,10 @@ header { display: none !important; }
     text-align: center;
 }
 .success-banner .big {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: '__TITLE_FONT_FAMILY__', serif;
     font-size: 1.4rem;
     font-style: italic;
-    color: #4A5C40;
+    color: #C0694A;
     display: block;
     margin-bottom: 0.2rem;
 }
@@ -324,7 +326,9 @@ div[data-testid="stRadio"] label span {
     .block-container { padding-left: 0.8rem !important; padding-right: 0.8rem !important; }
 }
 </style>
-"""
+""".replace("__TITLE_FONT_FACE__", title_font_face_css()).replace(
+    "__TITLE_FONT_FAMILY__", TITLE_FONT_FAMILY
+)
 
 
 def _upload_file(file) -> str:

@@ -2,14 +2,16 @@ import streamlit as st
 import os
 from datetime import datetime
 from pipeline.storage import upload_photo
+from theme import TITLE_FONT_FAMILY, title_font_face_css
 
 CUSTOM_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Jost:wght@300;400&display=swap');
+__TITLE_FONT_FACE__
 
 html, body, [class*="css"] { font-family: 'Jost', sans-serif; font-weight: 300; }
 .stApp { background-color: #FAFAF8; }
-h1,h2,h3 { font-family: 'Cormorant Garamond', serif !important; font-weight: 300 !important; color: #2C2A26 !important; letter-spacing: 0.04em; }
+h1,h2,h3 { font-family: '__TITLE_FONT_FAMILY__', serif !important; font-weight: 300 !important; color: #C0694A !important; letter-spacing: 0.04em; }
 footer { display: none !important; }
 #MainMenu { display: none !important; }
 header { display: none !important; }
@@ -21,11 +23,11 @@ header { display: none !important; }
     margin-bottom: 2rem;
 }
 .page-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: '__TITLE_FONT_FAMILY__', serif;
     font-size: 2rem;
     font-style: italic;
     font-weight: 300;
-    color: #2C2A26;
+    color: #C0694A;
 }
 .page-subtitle {
     font-size: 0.75rem;
@@ -123,7 +125,9 @@ header { display: none !important; }
     display: block;
 }
 </style>
-"""
+""".replace("__TITLE_FONT_FACE__", title_font_face_css()).replace(
+    "__TITLE_FONT_FAMILY__", TITLE_FONT_FAMILY
+)
 
 
 def render_upload_page():
